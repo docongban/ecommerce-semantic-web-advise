@@ -76,6 +76,7 @@ def saveDataProductToMySQL(category):
         categoryItem = {
             "original_category_id": categoryId,
             "name": categoryInfo.get("h1_title"),
+            "sku": category,
         }
         print(f"---INSERT_CATEGORY_{category}---", categoryItem)
         category_id = insertToMysql("category", categoryItem, cursor)

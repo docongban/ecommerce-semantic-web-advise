@@ -19,6 +19,7 @@ def insertToMysql(tableName, data, cursor):
     sql = f"""
         INSERT INTO {tableName} ({', '.join(columns)})
         VALUES ({placeholders})
+        ON DUPLICATE KEY UPDATE {", ".join([f"{col} = VALUES({col})" for col in columns])}
     """
 
     values = tuple(data.values())
@@ -42,6 +43,7 @@ def insertAllToMysql(tableName, data, cursor):
     sql = f"""
         INSERT INTO {tableName} ({', '.join(columns)})
         VALUES ({placeholders})
+        ON DUPLICATE KEY UPDATE {", ".join([f"{col} = VALUES({col})" for col in columns])}
     """
 
     values = [tuple(item.values()) for item in data]
