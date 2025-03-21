@@ -7,7 +7,7 @@ db_config = {
     "database": "semantic_web_ecommerce",
 }
 
-def insertToMysql(tableName, data, conn, cursor):
+def insertToMysql(tableName, data, cursor):
     if not data:
         print("Không có dữ liệu để insert.")
         return
@@ -30,7 +30,7 @@ def insertToMysql(tableName, data, conn, cursor):
     except Exception as e:
         print(f"❌ Lỗi khi insert vào MySQL: {e}")
 
-def insertAllToMysql(tableName, data, conn, cursor):
+def insertAllToMysql(tableName, data, cursor):
     if not data:
         print("Không có dữ liệu để insert.")
         return
@@ -52,3 +52,4 @@ def insertAllToMysql(tableName, data, conn, cursor):
         return [cursor.lastrowid + i for i in range(len(data))]
     except Exception as e:
         print(f"❌ Lỗi khi insert vào MySQL: {e}")
+

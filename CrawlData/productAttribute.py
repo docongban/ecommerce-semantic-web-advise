@@ -1,6 +1,7 @@
 from ultils.callApi import *
 from ultils.mysql import *
 
+# Lấy thông tin category từ API Cellphones
 def getCategoryInfo(category):
     url = "https://api.cellphones.com.vn/graphql-url/graphql/query"
     payload = {
@@ -23,6 +24,7 @@ def getCategoryInfo(category):
     response = callApiCellphones(url, payload)
     return response.get("data").get("url_info")
 
+# Lấy thông tin tất cả sản phẩm theo category từ API Cellphones
 def getAllProductByCategory(categoryId):
     url = "https://api.cellphones.com.vn/v2/graphql/query"
     payload = {
@@ -63,6 +65,7 @@ def getAllProductByCategory(categoryId):
     response = callApiCellphones(url, payload)
     return response.get("data").get("products")
 
+# Lưu dữ liệu sản phẩm, product_info Cellphones vào MySQL
 def saveDataProductToMySQL(category):
     conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor()
@@ -70,11 +73,12 @@ def saveDataProductToMySQL(category):
     try:
         categoryInfo = getCategoryInfo(category)
         categoryId = categoryInfo.get("category_id")
-        categoryList = {
+        categoryItem = {
             "original_category_id": categoryId,
             "name": categoryInfo.get("h1_title"),
         }
-        category_id = insertToMysql("category", categoryList, conn, cursor)
+        print(f"---INSERT_CATEGORY_{category}---", categoryItem)
+        category_id = insertToMysql("category", categoryItem, cursor)
 
         products = getAllProductByCategory(categoryId)
         if products:
@@ -109,7 +113,8 @@ def saveDataProductToMySQL(category):
                     "weight": attributes.get("product_weight"),
                     "special_feature": attributes.get("mobile_tinh_nang_dac_biet"),
                 })
-            productIds = insertAllToMysql("product", productList, conn, cursor)
+                print(f"---INSERT_PRODUCT_{product.get('general').get('product_id')}---", product.get("general").get("name"))
+            productIds = insertAllToMysql("product", productList, cursor)
 
             productInfoList = []
             for index, product in enumerate(products):
@@ -122,7 +127,8 @@ def saveDataProductToMySQL(category):
                     "total_rating": product.get("general").get("review").get("total_count"),
                     "average_rating": product.get("general").get("review").get("average_rating"),
                 })
-            insertAllToMysql("product_info", productInfoList, conn, cursor)
+                print(f"---INSERT_PRODUCT_INFO_{product.get('general').get('product_id')}---", product.get("general").get("name"))
+            insertAllToMysql("product_info", productInfoList, cursor)
 
             conn.commit()
         
