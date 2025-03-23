@@ -1,8 +1,8 @@
 from ultils.callApi import *
 from ultils.mysql import *
 
-# Lấy tất cả sản phẩm từ MySQL
-def getAllProductFromMysql():
+# Lấy tất cả sản phẩm theo category từ MySQL
+def getAllProductByCategoryFromMysql(category):
     conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor()
 
@@ -10,6 +10,8 @@ def getAllProductFromMysql():
         sql = f"""
             SELECT pi.original_product_id, p.* FROM product p
             JOIN product_info pi ON p.id = pi.product_id
+            JOIN category c ON c.id = p.category_id
+            WHERE c.sku = '{category}'
         """
         cursor.execute(sql)
         result = cursor.fetchall()
@@ -68,13 +70,36 @@ def getReviewByProductIdCellphones(productId, page):
     response = callApiCellphones(url, payload)
     return response.get("data").get("reviews").get("matches")
 
+# Lấy đánh giá trên Fpt
+def getReviewByProductIdFpt(productId, page):
+    url = "https://papi.fptshop.com.vn/gw/v1/public/bff-before-order/comment/list"
+    payload = {
+        "content": {
+            "id": productId,
+            "type": "PRODUCT"
+        },
+        "state": [
+            "ACTIVE"
+        ],
+        "score": [
+            "4","5","3","2","1"
+        ],
+        "skipCount": 10 * page,
+        "maxResultCount": 10,
+        "sortMethod": 1
+    }
+    response = callApiFpt("post", url, payload)
+    if response:
+        return response.get("data").get("items")
+    return
+
 # Lưu dữ liệu đánh giá Cellphones vào MySQL
-def saveDataReviewCellphonesToMySQL():
+def saveDataReviewCellphonesToMySQL(category):
     conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor()
 
     try:
-        products = getAllProductFromMysql()
+        products = getAllProductByCategoryFromMysql(category)
         if products:
             reviewList = []
             for product in products:
@@ -112,5 +137,49 @@ def saveDataReviewCellphonesToMySQL():
         cursor.close()
         conn.close()
 
+# Lưu dữ liệu đánh giá Fpt vào MySQL
+def saveDataReviewFptToMySQL(category):
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
 
-saveDataReviewCellphonesToMySQL()
+    try:
+        products = getAllProductByCategoryFromMysql(category)
+        if products:
+            reviewList = []
+            for product in products:
+                originalProductId = product[0]
+                productId = product[1]
+                lastReview = getLastReviewFromMysql(productId, "FPT")
+                if lastReview:
+                    lastReviewId = lastReview[0]
+                else:
+                    lastReviewId = 0
+                for page in range(0, 1000):
+                    reviews = getReviewByProductIdFpt(originalProductId, page)
+                    if reviews:
+                        for review in reviews:
+                            if review.get("id") > lastReviewId:
+                                print(f"---INSERT_REVIEW_{productId}_{page}--",review)
+                                reviewList.append({
+                                    "product_id": productId,
+                                    "original_product_id": originalProductId,
+                                    "original_review_id": review.get("id"),
+                                    "ecom": "FPT",
+                                    "content": review.get("content"),
+                                    "rate": review.get("score"),
+                                })
+                    else:
+                        break
+            if reviewList:
+                insertAllToMysql("product_review", reviewList, cursor)
+                conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        print(f"❌ Lỗi xảy ra, đã rollback dữ liệu: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+# saveDataReviewCellphonesToMySQL("samsung")
+# saveDataReviewFptToMySQL("samsung")
