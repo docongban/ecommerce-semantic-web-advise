@@ -2,7 +2,7 @@ from ultils.callApi import *
 from ultils.mysql import *
 
 # Lấy tất cả sản phẩm theo category từ MySQL
-def getAllProductByCategoryFromMysql(category):
+def getAllProductByCategoryFromMysql(category, ecom):
     conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor()
 
@@ -11,7 +11,7 @@ def getAllProductByCategoryFromMysql(category):
             SELECT pi.original_product_id, p.* FROM product p
             JOIN product_info pi ON p.id = pi.product_id
             JOIN category c ON c.id = p.category_id
-            WHERE c.sku = '{category}'
+            WHERE c.sku = '{category}' AND pi.ecom = '{ecom}'
         """
         cursor.execute(sql)
         result = cursor.fetchall()
@@ -99,7 +99,7 @@ def saveDataReviewCellphonesToMySQL(category):
     cursor = conn.cursor()
 
     try:
-        products = getAllProductByCategoryFromMysql(category)
+        products = getAllProductByCategoryFromMysql(category, "CELLPHONES")
         if products:
             reviewList = []
             for product in products:
@@ -143,7 +143,7 @@ def saveDataReviewFptToMySQL(category):
     cursor = conn.cursor()
 
     try:
-        products = getAllProductByCategoryFromMysql(category)
+        products = getAllProductByCategoryFromMysql(category, "FPT")
         if products:
             reviewList = []
             for product in products:
