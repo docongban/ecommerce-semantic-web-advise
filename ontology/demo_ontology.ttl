@@ -1,0 +1,203 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix swrl: <http://www.w3.org/2003/11/swrl#> .
+@prefix swrlb: <http://www.w3.org/2003/11/swrlb#> .
+@prefix ex: <http://example.org/ontology/> .  # namespace mẫu, ex là tiền tố riêng
+
+<http://example.org/ontology> a owl:Ontology .
+
+# Classes
+ex:Category a owl:Class .
+ex:Product a owl:Class .
+ex:ProductInfo a owl:Class .
+ex:ProductReview a owl:Class .
+
+# Properties for Category
+ex:id_category a owl:DatatypeProperty ;
+    rdfs:domain ex:Category ;
+    rdfs:range xsd:integer .
+
+ex:original_category_id a owl:DatatypeProperty ;
+    rdfs:domain ex:Category ;
+    rdfs:range xsd:integer .
+
+ex:name_category a owl:DatatypeProperty ;
+    rdfs:domain ex:Category ;
+    rdfs:range xsd:string .
+
+ex:sku_category a owl:DatatypeProperty ;
+    rdfs:domain ex:Category ;
+    rdfs:range xsd:string .
+
+# Properties for Product
+ex:id_product a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:integer .
+
+ex:name_product a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:sku_product a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:display_size a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:display_resolution a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:display_type a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:display_rate a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:camera_primary a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:camera_secondary a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:camera_feature a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:operating_system a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:operating_system_version a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:memory_internal a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:memory_card_slot a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:memory_filter a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:storage a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:storage_filter a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:chipset a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:nfc a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:sim a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:internet a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:battery a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:charg_type a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:charg a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:weight a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:special_feature a owl:DatatypeProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range xsd:string .
+
+ex:has_category a owl:ObjectProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range ex:Category .
+
+# Properties for ProductInfo
+ex:id_product_info a owl:DatatypeProperty ;
+    rdfs:domain ex:ProductInfo ;
+    rdfs:range xsd:integer .
+
+ex:original_product_id_info a owl:DatatypeProperty ;
+    rdfs:domain ex:ProductInfo ;
+    rdfs:range xsd:string .
+
+ex:ecom a owl:DatatypeProperty ;
+    rdfs:domain ex:ProductInfo ;
+    rdfs:range xsd:string .
+
+ex:price a owl:DatatypeProperty ;
+    rdfs:domain ex:ProductInfo ;
+    rdfs:range xsd:integer .
+
+ex:special_price_info a owl:DatatypeProperty ;
+    rdfs:domain ex:ProductInfo ;
+    rdfs:range xsd:integer .
+
+ex:total_rating a owl:DatatypeProperty ;
+    rdfs:domain ex:ProductInfo ;
+    rdfs:range xsd:integer .
+
+ex:average_rating a owl:DatatypeProperty ;
+    rdfs:domain ex:ProductInfo ;
+    rdfs:range xsd:float .
+
+ex:has_info a owl:ObjectProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range ex:ProductInfo .
+
+# Properties for ProductReview
+ex:id_product_review a owl:DatatypeProperty ;
+    rdfs:domain ex:ProductReview ;
+    rdfs:range xsd:integer .
+
+ex:original_review_id a owl:DatatypeProperty ;
+    rdfs:domain ex:ProductReview ;
+    rdfs:range xsd:string .
+
+ex:ecom_review a owl:DatatypeProperty ;
+    rdfs:domain ex:ProductReview ;
+    rdfs:range xsd:string .
+
+ex:content a owl:DatatypeProperty ;
+    rdfs:domain ex:ProductReview ;
+    rdfs:range xsd:string .
+
+ex:rate a owl:DatatypeProperty ;
+    rdfs:domain ex:ProductReview ;
+    rdfs:range xsd:integer .
+
+ex:has_review a owl:ObjectProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range ex:ProductReview .
+
+ex:category_id a owl:ObjectProperty ;
+    rdfs:domain ex:Product ;
+    rdfs:range ex:Category .
