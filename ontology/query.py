@@ -1,11 +1,8 @@
-from rdflib import Graph, Namespace, URIRef
+from rdflib import Graph, Namespace
 import os
 
-# Đường dẫn tuyệt đối đến thư mục chứa file hiện tại
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
 # Đường dẫn đến folder Data
-data_folder = os.path.join(BASE_DIR, "Data")
+data_folder = os.path.join(os.getcwd(), "Data")
 
 # Đường dẫn đến file ontology và data
 ontology_file_path = os.path.join(data_folder, "ontology.ttl")
@@ -33,18 +30,45 @@ EX = Namespace("http://example.org/ontology#")
 g.bind("ex", EX)
 
 # Truy vấn SPARQL
+# query = """
+# PREFIX ex: <http://example.org/ontology#>
+# PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+# SELECT ?productInfo ?price ?rating
+# WHERE {
+#     ?productInfo a ex:Product_info ;
+#                  ex:price ?price ;
+#                  ex:average_rating ?rating .
+#     FILTER(xsd:integer(?price) > 5000000 && xsd:float(?rating) > 4.5)
+# }
+# """
 query = """
 PREFIX ex: <http://example.org/ontology#>
-PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-SELECT ?productInfo ?price ?rating
+SELECT ?name ?battery
 WHERE {
-    ?productInfo a ex:Product_info ;
-                 ex:price ?price ;
-                 ex:average_rating ?rating .
-    FILTER(xsd:integer(?price) > 5000000 && xsd:float(?rating) > 4.5)
+  ?product a ex:Product ;
+           ex:name ?name ;
+           ex:battery ?battery .
+  FILTER(CONTAINS(LCASE(STR(?name)), "iphone 15"))
 }
+LIMIT 1
 """
+# query = """
+# PREFIX ex: <http://example.org/ontology#>
+
+# SELECT ?name ?price ?ecom
+# WHERE {
+#   ?product a ex:Product ;
+#            ex:name ?name ;
+#            ex:id ?id .
+#   ?product_info a ex:Product_info ;
+#                 ex:product_id ?id ;
+#                 ex:ecom ?ecom ;
+#                 ex:price ?price .
+#   FILTER(CONTAINS(LCASE(STR(?name)), "iphone 15"))
+# }
+# """
 
 # Thực thi truy vấn
 print("Đang thực thi SPARQL...")
@@ -54,7 +78,8 @@ results = g.query(query)
 print("Kết quả truy vấn:")
 count = 0
 for row in results:
-    print(f"  - ProductInfo: {row.productInfo}, Price: {row.price}, Rating: {row.rating}")
+    # print(f"  - ProductInfo: {row.productInfo}, Price: {row.price}, Rating: {row.rating}")
+    print(row)
     count += 1
 
 if count == 0:
