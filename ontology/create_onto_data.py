@@ -79,10 +79,10 @@ for table in tables:
     g_onto.add((class_uri, RDF.type, OWL.Class))
     g_onto.add((class_uri, RDFS.label, Literal(table.capitalize())))
 
-# ✅ Ràng buộc: Category và Product không giao nhau
+# Ràng buộc: Category và Product không giao nhau
 g_onto.add((ex.Category, OWL.disjointWith, ex.Product))
 
-# ✅ Ràng buộc nâng cao: Product_info phải có giá cụ thể (giả sử = 0 để dùng OWL.hasValue)
+# Ràng buộc nâng cao: Product_info phải có giá cụ thể (giả sử = 0 để dùng OWL.hasValue)
 restriction = BNode()
 g_onto.add((restriction, RDF.type, OWL.Restriction))
 g_onto.add((restriction, OWL.onProperty, ex.price))
@@ -108,7 +108,7 @@ for table in tables:
             g_onto.add((property_uri, RDFS.domain, class_uri))
             g_onto.add((property_uri, RDFS.range, URIRef(ex[target_table.capitalize()])))
 
-            # ✅ FunctionalProperty cho category_id
+            # FunctionalProperty cho category_id
             if col_name == "category_id":
                 g_onto.add((property_uri, RDF.type, OWL.FunctionalProperty))
 
@@ -117,7 +117,7 @@ for table in tables:
             g_onto.add((property_uri, RDF.type, OWL.DatatypeProperty))
             g_onto.add((property_uri, RDFS.domain, class_uri))
 
-            # ✅ FunctionalProperty cho các thuộc tính cụ thể
+            # FunctionalProperty cho các thuộc tính cụ thể
             if col_name in ["price", "average_rating", "name", "rate"]:
                 g_onto.add((property_uri, RDF.type, OWL.FunctionalProperty))
 
@@ -188,7 +188,7 @@ for table, rows in data_map.items():
             if product_data:
                 product_name = product_data[2]  # Giả sử cột name là cột thứ 3
                 g_data.add((subject, ex.name, Literal(product_name, datatype=XSD.string)))
-                print(f"[INFO] Gán tên '{product_name}' cho {subject}")
+                # print(f"[INFO] Gán tên '{product_name}' cho {subject}")
             else:
                 g_data.add((subject, ex.name, Literal(f"Unknown Product {row[0]}", datatype=XSD.string)))
 
