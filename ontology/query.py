@@ -1,198 +1,150 @@
-import mysql.connector
+from rdflib import Graph, Namespace
 import os
-from rdflib import Graph, URIRef, Literal, Namespace, OWL, XSD, BNode
-from rdflib.namespace import RDF, RDFS
 
-# Cấu hình kết nối CSDL
-config = {
-    'user': 'root',
-    'password': '123456',
-    'host': '127.0.0.1',
-    'database': 'websemantic'
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+data_folder = os.path.join(BASE_DIR, "Data")
+
+ontology_file_path = os.path.join(data_folder, "ontology.ttl")
+data_file_path = os.path.join(data_folder, "data.ttl")
+inferred_file_path = os.path.join(data_folder, "inferred.ttl")
+
+if not os.path.exists(ontology_file_path):
+    print(f"Lỗi: Không tìm thấy file ontology tại {ontology_file_path}")
+    exit()
+if not os.path.exists(data_file_path):
+    print(f"Lỗi: Không tìm thấy file data tại {data_file_path}")
+    exit()
+
+g = Graph()
+
+print("Đang nạp ontology...")
+g.parse(ontology_file_path, format="turtle")
+
+print("Đang nạp dữ liệu...")
+g.parse(data_file_path, format="turtle")
+
+EX = Namespace("http://example.org/ontology#")
+DATA = Namespace("http://example.org/data/")
+g.bind("ex", EX)
+g.bind("data", DATA)
+
+# === Các luật suy diễn bằng SPARQL CONSTRUCT ===
+rules = [
+    """
+    PREFIX ex: <http://example.org/ontology#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    CONSTRUCT {
+        ?s a ex:PremiumProduct .
+    }
+    WHERE {
+        ?s a ex:Product_info ;
+           ex:price ?price ;
+           ex:average_rating ?rating .
+        FILTER(xsd:integer(?price) > 10000000 && xsd:float(?rating) > 4.5)
+    }
+    """,
+    """
+    PREFIX ex: <http://example.org/ontology#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    CONSTRUCT {
+        ?s a ex:BudgetProduct .
+    }
+    WHERE {
+        ?s a ex:Product_info ;
+           ex:price ?price .
+        FILTER(xsd:integer(?price) < 2000000)
+    }
+    """,
+    """
+    PREFIX ex: <http://example.org/ontology#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    CONSTRUCT {
+        ?s a ex:RecommendedProduct .
+    }
+    WHERE {
+        ?s a ex:BudgetProduct ;
+           ex:average_rating ?rating .
+        FILTER(xsd:float(?rating) >= 4.0)
+    }
+    """,
+    """
+    PREFIX ex: <http://example.org/ontology#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    CONSTRUCT {
+        ?s a ex:WellRatedProduct .
+    }
+    WHERE {
+        ?s a ex:Product_info ;
+           ex:average_rating ?r .
+        FILTER(xsd:float(?r) >= 4.5)
+    }
+    """,
+    """
+    PREFIX ex: <http://example.org/ontology#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    CONSTRUCT {
+        ?s a ex:MidRangeProduct .
+    }
+    WHERE {
+        ?s a ex:Product_info ;
+           ex:price ?p .
+        FILTER(xsd:integer(?p) >= 4000000 && xsd:integer(?p) <= 7000000)
+    }
+    """
+]
+
+print("Đang thực hiện suy diễn logic bằng SPARQL CONSTRUCT...")
+for i, rule in enumerate(rules):
+    inferred = g.query(rule)
+    for triple in inferred:
+        g.add(triple)
+    print(f"  - Luật {i+1} đã được áp dụng.")
+
+g.serialize(destination=inferred_file_path, format="turtle")
+print(f"\nĐã ghi graph suy diễn vào file: {inferred_file_path}")
+
+rule_descriptions = {
+    "PremiumProduct": "Giá > 10 triệu và Rating > 4.5",
+    "BudgetProduct": "Giá < 2 triệu",
+    "RecommendedProduct": "Là BudgetProduct và Rating >= 4.0",
+    "WellRatedProduct": "Số average_rating >= 4.5",
+    "MidRangeProduct": "Price từ 4 triệu đến 7 triệu"
 }
 
-tables = ["category", "product", "product_info", "product_review"]
-os.makedirs("Data", exist_ok=True)
+def print_inferred_products(class_name):
+    query_template = f"""
+    PREFIX ex: <http://example.org/ontology#>
+    SELECT ?product_info ?finalName
+    WHERE {{
+        ?product_info a ex:{class_name} .
 
-# Hàm lấy dữ liệu từ DB
-def get_data(query):
-    try:
-        conn = mysql.connector.connect(**config)
-        cursor = conn.cursor()
-        cursor.execute(query)
-        return cursor.fetchall()
-    except mysql.connector.Error as err:
-        print(f"Error: {err}")
-        return None
-    finally:
-        if conn:
-            conn.close()
+        # Lấy tên trực tiếp nếu có
+        OPTIONAL {{ ?product_info ex:name ?name . }}
 
-# Lấy thông tin cột của bảng
-def get_table_columns(table_name):
-    try:
-        conn = mysql.connector.connect(**config)
-        cursor = conn.cursor()
-        cursor.execute(f"SHOW COLUMNS FROM {table_name}")
-        return cursor.fetchall()
-    except mysql.connector.Error as err:
-        print(f"Error: {err}")
-        return None
-    finally:
-        if conn:
-            conn.close()
+        # Nếu không có tên, lấy từ product liên kết qua product_id
+        OPTIONAL {{
+            ?product_info ex:product_id ?product .
+            ?product ex:name ?altName .
+        }}
 
-# Lấy foreign key
-def get_foreign_keys():
-    query = """
-        SELECT TABLE_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
-        FROM information_schema.KEY_COLUMN_USAGE
-        WHERE TABLE_SCHEMA = %s AND REFERENCED_TABLE_NAME IS NOT NULL
+        BIND(COALESCE(?name, ?altName) AS ?finalName)
+    }}
     """
-    try:
-        conn = mysql.connector.connect(**config)
-        cursor = conn.cursor()
-        cursor.execute(query, (config["database"],))
-        return cursor.fetchall()
-    except mysql.connector.Error as err:
-        print(f"Error: {err}")
-        return []
-    finally:
-        if conn:
-            conn.close()
+    results = g.query(query_template)
+    rows = list(results)
 
-# Lấy dữ liệu
-data_map = {table: get_data(f"SELECT * FROM {table}") for table in tables}
+    print(f"\n[{class_name}] - {rule_descriptions[class_name]}")
+    print(f"  → Tổng số: {len(rows)} sản phẩm")
+    if not rows:
+        print("  (Không có sản phẩm thỏa mãn)")
+    else:
+        for row in rows:
+            name_display = f'"{row.finalName}"' if row.finalName else "(Không có tên)"
+            print(f"  - {row.product_info} | Tên: {name_display}")
 
-# Ontology
-g_onto = Graph()
-ex = Namespace("http://example.org/ontology#")
-g_onto.bind("ex", ex)
-g_onto.bind("rdf", RDF)
-g_onto.bind("rdfs", RDFS)
-g_onto.bind("owl", OWL)
-g_onto.bind("xsd", XSD)
 
-# Tạo lớp
-for table in tables:
-    class_uri = URIRef(ex[table.capitalize()])
-    g_onto.add((class_uri, RDF.type, OWL.Class))
-    g_onto.add((class_uri, RDFS.label, Literal(table.capitalize())))
+print("\n=== KẾT QUẢ SUY DIỄN ===")
+for cls in rule_descriptions.keys():
+    print_inferred_products(cls)
 
-# ✅ Ràng buộc: Category và Product không giao nhau
-g_onto.add((ex.Category, OWL.disjointWith, ex.Product))
-
-# ✅ Ràng buộc nâng cao: Product_info phải có giá cụ thể (giả sử = 0 để dùng OWL.hasValue)
-restriction = BNode()
-g_onto.add((restriction, RDF.type, OWL.Restriction))
-g_onto.add((restriction, OWL.onProperty, ex.price))
-g_onto.add((restriction, OWL.hasValue, Literal(0, datatype=XSD.integer)))
-g_onto.add((ex.Product_info, OWL.equivalentClass, restriction))
-
-# Lấy khóa ngoại
-foreign_keys = get_foreign_keys()
-foreign_key_map = {(fk[0], fk[1]): (fk[2], fk[3]) for fk in foreign_keys}
-
-# Tạo properties
-for table in tables:
-    class_uri = URIRef(ex[table.capitalize()])
-    columns = get_table_columns(table)
-    for column in columns:
-        col_name, col_type = column[0], column[1]
-        property_uri = URIRef(ex[col_name])
-
-        # Foreign key → ObjectProperty
-        if (table, col_name) in foreign_key_map:
-            target_table = foreign_key_map[(table, col_name)][0]
-            g_onto.add((property_uri, RDF.type, OWL.ObjectProperty))
-            g_onto.add((property_uri, RDFS.domain, class_uri))
-            g_onto.add((property_uri, RDFS.range, URIRef(ex[target_table.capitalize()])))
-
-            # ✅ FunctionalProperty cho category_id
-            if col_name == "category_id":
-                g_onto.add((property_uri, RDF.type, OWL.FunctionalProperty))
-
-        else:
-            # DatatypeProperty
-            g_onto.add((property_uri, RDF.type, OWL.DatatypeProperty))
-            g_onto.add((property_uri, RDFS.domain, class_uri))
-
-            # ✅ FunctionalProperty cho các thuộc tính cụ thể
-            if col_name in ["price", "average_rating", "name", "rate"]:
-                g_onto.add((property_uri, RDF.type, OWL.FunctionalProperty))
-
-            # Gán kiểu dữ liệu
-            if col_name in ["price", "discount_price", "monthly_price"]:
-                xsd_type = XSD.integer
-            elif col_name in ["stock", "rate", "total_rating"]:
-                xsd_type = XSD.integer
-            elif col_name in ["category_id", "id", "original_category_id", "product_id"]:
-                xsd_type = XSD.integer
-            elif col_name in ["average_rating"]:
-                xsd_type = XSD.float
-            else:
-                xsd_type = XSD.string
-
-            g_onto.add((property_uri, RDFS.range, xsd_type))
-
-        g_onto.add((property_uri, RDFS.label, Literal(col_name)))
-
-# Lưu ontology
-onto_path = os.path.join("Data", "ontology.ttl")
-g_onto.serialize(onto_path, format="turtle")
-print(f"✔ Ontology đã lưu vào {onto_path}")
-
-# RDF Data
-g_data = Graph()
-data_ns = Namespace("http://example.org/data/")
-g_data.bind("ex", ex)
-g_data.bind("data", data_ns)
-
-def create_uri(table, id_value):
-    return URIRef(data_ns + f"{table}/{id_value}")
-
-for table, rows in data_map.items():
-    columns = get_table_columns(table)
-    for row in rows:
-        subject = create_uri(table, row[0])
-        g_data.add((subject, RDF.type, ex[table.capitalize()]))
-
-        for idx, column in enumerate(columns):
-            col_name = column[0]
-            value = row[idx]
-            if value is None:
-                continue
-            predicate = URIRef(ex[col_name])
-
-            # Foreign key → URI
-            if (table, col_name) in foreign_key_map:
-                ref_table = foreign_key_map[(table, col_name)][0]
-                obj_uri = create_uri(ref_table, value)
-                g_data.add((subject, predicate, obj_uri))
-            else:
-                # Literal
-                if col_name in ["price", "discount_price", "monthly_price", "category_id", "id", "original_category_id", "product_id"]:
-                    lit = Literal(value, datatype=XSD.integer)
-                elif col_name in ["stock", "rate", "total_rating"]:
-                    lit = Literal(value, datatype=XSD.integer)
-                elif col_name == "average_rating":
-                    lit = Literal(value, datatype=XSD.float)
-                else:
-                    lit = Literal(str(value), datatype=XSD.string)
-                g_data.add((subject, predicate, lit))
-
-        # Gán ex:name cho product_info từ product
-        if table == "product_info":
-            product_id = row[1]
-            product_data = next((r for r in data_map["product"] if r[0] == product_id), None)
-            if product_data:
-                product_name = product_data[2]  # Giả sử cột name là cột thứ 3
-                g_data.add((subject, ex.name, Literal(product_name, datatype=XSD.string)))
-                print(f"[INFO] Gán tên '{product_name}' cho {subject}")
-            else:
-                g_data.add((subject, ex.name, Literal(f"Unknown Product {row[0]}", datatype=XSD.string)))
-
-# Lưu RDF
-data_path = os.path.join("Data", "data.ttl")
-g_data.serialize(data_path, format="turtle")
-print(f"✔ RDF data đã lưu vào {data_path}")
+print("\nHoàn thành.")
