@@ -50,25 +50,44 @@ WHERE {
   ?product a ex:Product ;
            ex:name ?name ;
            ex:battery ?battery .
+  FILTER(CONTAINS(LCASE(STR(?name)), "iphone 15")&&
+         CONTAINS(LCASE(STR(?name)), "256gb") &&
+         CONTAINS(LCASE(STR(?name)), "256gb") &&
+         CONTAINS(LCASE(STR(?name)), "pro max"))
+}
+"""
+query = """
+PREFIX ex: <http://example.org/ontology#>
+
+SELECT ?name ?price ?ecom
+WHERE {
+  ?product a ex:Product ;
+           ex:name ?name ;
+           ex:id ?id .
+  ?product_info a ex:Product_info ;
+                ex:product_id ?id ;
+                ex:ecom ?ecom ;
+                ex:price ?price .
   FILTER(CONTAINS(LCASE(STR(?name)), "iphone 15"))
 }
-LIMIT 1
 """
-# query = """
-# PREFIX ex: <http://example.org/ontology#>
 
-# SELECT ?name ?price ?ecom
-# WHERE {
-#   ?product a ex:Product ;
-#            ex:name ?name ;
-#            ex:id ?id .
-#   ?product_info a ex:Product_info ;
-#                 ex:product_id ?id ;
-#                 ex:ecom ?ecom ;
-#                 ex:price ?price .
-#   FILTER(CONTAINS(LCASE(STR(?name)), "iphone 15"))
-# }
-# """
+query = """
+PREFIX ex: <http://example.org/ontology#>
+
+            SELECT ?name 
+            WHERE {
+            ?product a ex:Product ;
+                    ex:name ?name ;
+        
+ ex:id ?id .
+                ?product_info a ex:Product_info ;
+                            ex:product_id ?id ;
+ex:special_price ?special_price  .
+            FILTER(CONTAINS(LCASE(STR(?name)), "iphone") && xsd:float(?special_price) >= 10000000 && xsd:float(?special_price) <= 20000000 )
+            }
+            LIMIT 1
+"""
 
 # Thực thi truy vấn
 print("Đang thực thi SPARQL...")
