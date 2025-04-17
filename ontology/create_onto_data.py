@@ -188,7 +188,7 @@ for table, rows in data_map.items():
             if product_data:
                 product_name = product_data[2]  # Giả sử cột name là cột thứ 3
                 g_data.add((subject, ex.name, Literal(product_name, datatype=XSD.string)))
-                print(f"[INFO] Gán tên '{product_name}' cho {subject}")
+                # print(f"[INFO] Gán tên '{product_name}' cho {subject}")
             else:
                 g_data.add((subject, ex.name, Literal(f"Unknown Product {row[0]}", datatype=XSD.string)))
 
