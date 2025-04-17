@@ -126,6 +126,8 @@ for table in tables:
                 xsd_type = XSD.integer
             elif col_name in ["stock", "rate", "total_rating"]:
                 xsd_type = XSD.integer
+            elif col_name in ["category_id", "id", "original_category_id", "product_id"]:
+                xsd_type = XSD.integer
             elif col_name in ["average_rating"]:
                 xsd_type = XSD.float
             else:
@@ -169,7 +171,7 @@ for table, rows in data_map.items():
                 g_data.add((subject, predicate, obj_uri))
             else:
                 # Literal
-                if col_name in ["price", "discount_price", "monthly_price"]:
+                if col_name in ["price", "discount_price", "monthly_price", "category_id", "id", "original_category_id", "product_id"]:
                     lit = Literal(value, datatype=XSD.integer)
                 elif col_name in ["stock", "rate", "total_rating"]:
                     lit = Literal(value, datatype=XSD.integer)
